@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin TrebEdit</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Admin TrebEdit</h1>
+  </header>
+
+  <section class="admin-form">
+    <h2>Ajouter un exercice</h2>
+    <input type="text" id="title" placeholder="Titre de l'exercice">
+    <input type="text" id="subject" placeholder="Matière">
+    <input type="text" id="level" placeholder="Niveau">
+    <input type="text" id="file" placeholder="URL du fichier (PDF / image)">
+    <button id="addExerciseBtn">Ajouter</button>
+  </section>
+
+  <section id="adminList" class="exercises-list">
+    <!-- Liste des exercices pour modifier/supprimer -->
+  </section>
+
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
