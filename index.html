@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DavidSchool</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;color:#333;}
+header{background:linear-gradient(90deg,#0d6efd,#6610f2);color:#fff;padding:20px;text-align:center;position:relative;}
+header h1{font-size:2rem;}
+#adminIcon{position:absolute;top:15px;left:15px;width:40px;height:40px;background:#fff;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer;font-weight:bold;color:#6610f2;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:.2s;}
+#adminIcon:hover{transform:scale(1.1);}
+main{padding:20px;max-width:1000px;margin:auto;}
+.classes,.subjects{display:flex;flex-wrap:wrap;gap:15px;margin-bottom:20px;}
+.class-card,.subject-card{flex:1;min-width:120px;padding:20px;background:#fff;border-radius:12px;text-align:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:.2s;}
+.class-card:hover,.subject-card:hover{opacity:0.9;}
+.exercise-card{padding:10px;margin-bottom:15px;border-radius:8px;transition:.2s;color:#fff;display:inline-block;width:200px;text-align:center;vertical-align:top;}
+.exercise-card img{width:100%;border-radius:8px;cursor:pointer;transition:.2s;}
+.exercise-card img:hover{transform:scale(1.05);}
+.exercise-card a{display:block;margin-top:5px;color:#fff;text-decoration:underline;}
+#adminModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
+#adminContent{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:500px;position:relative;}
+#adminContent h2{margin-bottom:15px;}
+#adminContent input,#adminContent select,#adminContent button{width:100%;margin:5px 0;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:1rem;}
+#adminContent button{background:#6610f2;color:#fff;border:none;cursor:pointer;}
+#adminContent button:hover{background:#5200c5;}
+#closeAdmin{position:absolute;top:10px;right:15px;cursor:pointer;font-size:1.2rem;font-weight:bold;}
+#overlay{position:fixed;display:none;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:1000;}
+#overlay img{max-width:90%;max-height:90%;border-radius:10px;}
+@media(max-width:600px){.classes,.subjects{flex-direction:column;}.exercise-card{width:100%;}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>DavidSchool</h1>
+<div id="adminIcon">⚙</div>
+</header>
+
+<main>
+<section id="classesSection">
+<h2>Choisissez votre classe</h2>
+<div class="classes" id="classesContainer">
+<div class="class-card" data-class="6e">6ème</div>
+<div class="class-card" data-class="5e">5ème</div>
+<div class="class-card" data-class="4e">4ème</div>
+<div class="class-card" data-class="3e">3ème</div>
+</div>
+</section>
+
+<section id="subjectsSection" style="display:none;">
+<h2 id="classTitle"></h2>
+<div class="subjects" id="subjectsContainer"></div>
+<button onclick="backToClasses()">Retour aux classes</button>
+</section>
+
+<section id="exercisesSection" style="display:none;">
+<h2 id="subjectTitle"></h2>
+<div id="exercisesList"></div>
+<button onclick="backToSubjects()">Retour aux matières</button>
+</section>
+</main>
+
+<div id="overlay" onclick="this.style.display='none'"><img id="overlayImg" src=""></div>
+
+<div id="adminModal">
+<div id="adminContent">
+<span id="closeAdmin">✖</span>
+<h2>Admin DavidSchool</h2>
+<label>Code d'accès :</label>
+<input type="password" id="accessCodeInput" placeholder="Entrez le code">
+<button id="loginBtn">Se connecter</button>
+
+<div id="adminPanel" style="display:none;">
+<label>Code admin actuel:</label>
+<input type="text" id="adminCode" value="1234">
+<h3>Ajouter une photo</h3>
+<select id="adminClass"></select>
+<select id="adminSubject"></select>
+<input type="text" id="adminTitle" placeholder="Titre de la photo">
+<input type="file" id="adminFile" accept="image/*">
+<button id="addAdminExerciseBtn">Ajouter la photo</button>
+<h3>Exercices existants</h3>
+<div id="adminList"><p>Aucun exercice ajouté.</p></div>
+</div>
+</div>
+</div>
+
+<script>
+let exercises=[];
+let currentClass='';
+let currentSubject='';
+let adminCode=document.getElementById('adminCode').value;
+
+const classSubjects={
+'6e':['Français','Math','Anglais','Histoire','Géographie'],
+'5e':['Français','Math','Anglais','Histoire','Géographie'],
+'4e':['Français','Math','Anglais','Physique','Chimie','Histoire'],
+'3e':['Français','Math','Anglais','Physique','Chimie','Histoire','Géographie']
+};
+
+const subjectColors={
+'Math':'#1abc9c','Français':'#e74c3c','Anglais':'#3498db','Physique':'#9b59b6',
+'Chimie':'#f39c12','Histoire':'#2ecc71','Géographie':'#16a085'
+};
+
+// DOM Elements
+const classCards=document.querySelectorAll('.class-card');
+const classesSection=document.getElementById('classesSection');
+const subjectsSection=document.getElementById('subjectsSection');
+const exercisesSection=document.getElementById('exercisesSection');
+const classTitle=document.getElementById('classTitle');
+const subjectsContainer=document.getElementById('subjectsContainer');
+const subjectTitle=document.getElementById('subjectTitle');
+const exercisesList=document.getElementById('exercisesList');
+const adminIcon=document.getElementById('adminIcon');
+const adminModal=document.getElementById('adminModal');
+const closeAdmin=document.getElementById('closeAdmin');
+const loginBtn=document.getElementById('loginBtn');
+const adminPanel=document.getElementById('adminPanel');
+const accessCodeInput=document.getElementById('accessCodeInput');
+const addAdminExerciseBtn=document.getElementById('addAdminExerciseBtn');
+const adminClass=document.getElementById('adminClass');
+const adminSubject=document.getElementById('adminSubject');
+const adminList=document.getElementById('adminList');
+const overlay=document.getElementById('overlay');
+const overlayImg=document.getElementById('overlayImg');
+
+function updateAdminMenus(){
+  adminClass.innerHTML='';
+  adminSubject.innerHTML='';
+  for(let c in classSubjects){
+    let opt=document.createElement('option'); opt.value=c; opt.textContent=c.toUpperCase(); adminClass.appendChild(opt);
+  }
+  adminClass.addEventListener('change',()=>{
+    let cls=adminClass.value;
+    adminSubject.innerHTML='';
+    classSubjects[cls].forEach(s=>{
+      let opt=document.createElement('option'); opt.value=s; opt.textContent=s; adminSubject.appendChild(opt);
+    });
+  });
+  adminClass.dispatchEvent(new Event('change'));
+}
+
+classCards.forEach(card=>{
+card.addEventListener('click',()=>{
+currentClass=card.dataset.class;
+showSubjects();
+});
+});
+
+function showSubjects(){
+classesSection.style.display='none';
+subjectsSection.style.display='block';
+classTitle.textContent=`Classe ${currentClass}`;
+subjectsContainer.innerHTML='';
+classSubjects[currentClass].forEach(sub=>{
+const div=document.createElement('div');
+div.className='subject-card';
+div.style.background=subjectColors[sub]||'#34495e';
+div.textContent=sub;
+div.dataset.subject=sub;
+div.addEventListener('click',()=>{
+currentSubject=sub;
+showExercises();
+});
+subjectsContainer.appendChild(div);
+});
+}
+
+function backToClasses(){subjectsSection.style.display='none';classesSection.style.display='block';}
+function backToSubjects(){exercisesSection.style.display='none';subjectsSection.style.display='block';}
+
+function showExercises(){
+subjectsSection.style.display='none';
+exercisesSection.style.display='block';
+subjectTitle.textContent=`${currentSubject} - Classe ${currentClass}`;
+renderExercises();
+}
+
+adminIcon.addEventListener('click',()=>{adminModal.style.display='flex';});
+closeAdmin.addEventListener('click',()=>{adminModal.style.display='none';});
+loginBtn.addEventListener('click',()=>{
+if(accessCodeInput.value===adminCode) adminPanel.style.display='block';
+else alert('Code incorrect');
+});
+
+addAdminExerciseBtn.addEventListener('click',()=>{
+const cls=adminClass.value;
+const sub=adminSubject.value;
+const title=document.getElementById('adminTitle').value.trim();
+const file=document.getElementById('adminFile').files[0];
+if(!title||!file) return alert('Remplissez le titre et choisissez une image');
+const reader=new FileReader();
+reader.onload=function(e){
+exercises.push({class:cls,subject:sub,title:title,fileName:file.name,fileData:e.target.result});
+updateAdminList();
+updateAdminMenus();
+}
+reader.readAsDataURL(file);
+document.getElementById('adminTitle').value='';
+document.getElementById('adminFile').value='';
+});
+
+function updateAdminList(){
+adminList.innerHTML='';
+if(exercises.length===0){adminList.innerHTML='<p>Aucun exercice</p>';return;}
+exercises.forEach(e=>{
+const div=document.createElement('div');
+div.className='exercise-card';
+div.style.background=subjectColors[e.subject]||'#34495e';
+div.innerHTML=`<strong>${e.title}</strong> | ${e.class} | ${e.subject}<br>
+<img src="${e.fileData}" alt="${e.title}" onclick="showOverlay(this.src)"><br>
+<a href="${e.fileData}" download="${e.fileName}">Télécharger</a>`;
+adminList.appendChild(div);
+});
+}
+
+function renderExercises(){
+exercisesList.innerHTML='';
+let filtered=exercises.filter(e=>e.class===currentClass && e.subject===currentSubject);
+if(filtered.length===0){exercisesList.innerHTML='<p>Aucun exercice</p>';return;}
+filtered.forEach(e=>{
+const div=document.createElement('div');
+div.className='exercise-card';
+div.style.background=subjectColors[e.subject]||'#34495e';
+div.innerHTML=`<strong>${e.title}</strong><br>
+<img src="${e.fileData}" alt="${e.title}" onclick="showOverlay(this.src)"><br>
+<a href="${e.fileData}" download="${e.fileName}">Télécharger</a>`;
+exercisesList.appendChild(div);
+});
+}
+
+function showOverlay(src){
+overlay.style.display='flex';
+overlayImg.src=src;
+}
+
+document.getElementById('adminCode').addEventListener('change',(e)=>{adminCode=e.target.value;});
+updateAdminMenus();
+</script>
+
+</body>
+</html>
